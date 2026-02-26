@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Setup Face ID - UniPay</title>
+<style>
+  body { background-color: #000; color: #fff; font-family: 'Poppins', sans-serif; text-align:center; padding:50px; }
+  video, img { border-radius:12px; margin-bottom:20px; }
+  button { background-color:#008080; color:#fff; padding:12px 24px; border:none; border-radius:8px; cursor:pointer; margin:5px; }
+  button:hover { background-color:#00ffff; color:#000; }
+  #preview { display:none; }
+</style>
+</head>
+<body>
+
+<h2>Set Your Face ID</h2>
+
+<video id="video" width="320" height="240" autoplay></video>
+<br>
+<button id="capture">Capture</button>
+<button id="retake" style="display:none;">Retake</button>
+<button id="approve" style="display:none;">Approve & Save</button>
+
+<img id="preview" width="320" height="240" alt="Face Preview">
+
+<script>
+const video = document.getElementById('video');
+const captureBtn = document.getElementById('capture');
+const retakeBtn = document.getElementById('retake');
+const approveBtn = document.getElementById('approve');
+const preview = document.getElementById('preview');
+
+navigator.mediaDevices.getUserMedia({video:true})
+.then(stream => { video.srcObject = stream; })
+.catch(err => alert("Camera access required for Face ID"));
+
+captureBtn.addEventListener('click', () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video,0,0);
+    const dataURL = canvas.toDataURL('image/png');
+
+    preview.src = dataURL;
+    preview.style.display='block';
+    video.style.display='none';
+    captureBtn.style.display='none';
+    approveBtn.style.display='inline-block';
+    retakeBtn.style.display='inline-block';
+
+    approveBtn.dataset.face = dataURL;  // store captured face
+});
+
+retakeBtn.addEventListener('click', () => {
+    preview.style.display='none';
+    video.style.display='block';
+    captureBtn.style.display='inline-block';
+    approveBtn.style.display='none';
+    retakeBtn.style.display='none';
+});
+
+approveBtn.addEventListener('click', () => {
+    const face_image = approveBtn.dataset.face;
+    fetch('/setup_face', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({face_image})
+    })
+    .then(res => res.json())
+    .then(resp => { alert(resp.message || resp.error); })
+    .catch(err => alert("Error: "+err));
+});
+</script>
+
+</body>
+</html>

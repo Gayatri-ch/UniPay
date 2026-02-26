@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>UniPay Dashboard</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg-color: #000;
+      --card-bg: #101f1f;
+      --teal: #00ffff;
+      --text-light: #e0e0e0;
+      --accent-gradient: linear-gradient(135deg, #00ffff, #007f7f);
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-light);
+      font-family: 'Poppins', sans-serif;
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      height: 100%;
+      width: 220px;
+      background-color: #0a1111;
+      padding: 2rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      box-shadow: 2px 0 10px rgba(0, 255, 255, 0.2);
+      z-index: 1000;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+    }
+
+    .sidebar.active {
+      transform: translateX(0);
+    }
+
+    .sidebar a {
+      text-decoration: none;
+      color: var(--text-light);
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.5rem 1rem;
+      border-radius: 10px;
+      transition: all 0.2s ease;
+    }
+
+    .sidebar a:hover {
+      background: var(--accent-gradient);
+      color: black;
+    }
+
+    .main-content {
+      margin-left: 0;
+      padding: 1.5rem;
+      transition: margin-left 0.3s ease;
+    }
+
+    .main-content.shifted {
+      margin-left: 220px;
+    }
+
+    .toggle-btn {
+      position: fixed;
+      top: 1rem;
+      left: 1rem;
+      background: var(--accent-gradient);
+      border: none;
+      color: black;
+      padding: 0.5rem 1rem;
+      border-radius: 10px;
+      z-index: 1100;
+      cursor: pointer;
+    }
+
+    /* HEADER */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      padding-left: 80px;;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .header h1 {
+      color: var(--teal);
+      font-size: 2rem;
+      font-weight: 700;
+      text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+    }
+
+    .search-box {
+      background: var(--card-bg);
+      border-radius: 30px;
+      display: flex;
+      align-items: center;
+      padding: 0.5rem 1rem;
+      border: 1px solid #00ffff30;
+      transition: all 0.3s ease;
+    }
+
+    .search-box input {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: white;
+      flex: 1;
+    }
+
+    .search-box:hover {
+      border: 2px solid var(--teal);
+      box-shadow: 0 0 15px var(--teal);
+    }
+
+    .download-btn {
+      background: var(--accent-gradient);
+      color: black;
+      border: none;
+      border-radius: 25px;
+      padding: 0.5rem 1.5rem;
+      font-weight: bold;
+      transition: all 0.3s ease;
+    }
+
+    .download-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 0 10px var(--teal);
+    }
+
+    /* CARDS */
+    .card-custom {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);
+      border: 1px solid #00ffff20;
+      transition: 0.3s ease;
+    }
+
+    .card-custom:hover {
+      border: 1px solid var(--teal);
+      box-shadow: 0 0 15px var(--teal);
+      transform: translateY(-5px);
+    }
+
+    .chart-container {
+      position: relative;
+      width: 100%;
+      height: 250px;
+    }
+
+    h5, h6 {
+      color: var(--teal);
+      font-weight: 600;
+    }
+
+    p, small {
+      color: var(--text-light);
+    }
+
+    @media (max-width: 768px) {
+      .chart-container {
+        height: 200px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- TOGGLE BUTTON -->
+  <button class="toggle-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <a href="{{ url_for('user_dashboard') }}"><i class="fas fa-home"></i> Home</a>
+    <a href="{{ url_for('check_balance') }}"><i class="fas fa-wallet"></i> Check Balance</a>
+    <a href="{{ url_for('transaction_history') }}"><i class="fas fa-list"></i> Transactions</a>
+    <a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content" id="mainContent">
+    <div class="header">
+      <h1>UniPay</h1>
+      <div class="search-box">
+        <input type="text" placeholder="Search Transaction ID..." />
+        <i class="fas fa-search"></i>
+      </div>
+      <button class="download-btn">Download Report</button>
+    </div>
+
+    <div class="row">
+      <div class="col-md-8">
+        <div class="card-custom">
+          <h5>Your Balance Summary</h5>
+          <div class="d-flex justify-content-between flex-wrap">
+            <p><i class="fas fa-arrow-up" style="color: var(--teal);"></i> Credit: ₹{{ total_income }}</p>
+            <p><i class="fas fa-arrow-down" style="color: lightcoral;"></i> Debit: ₹{{ total_expense }}</p>
+            <p>Current Balance: <span id="balanceValue"></span></p>
+          </div>
+          
+          <div class="chart-container">
+            <canvas id="lineChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card-custom">
+          <h6>Debit</h6>
+          <p>₹{{ total_expense }}</p>
+          {% if previous_expense %}
+            <small>{{ ((total_expense - previous_expense)/previous_expense * 100)|round(1) }}% than last month</small>
+          {% else %}
+            <small>—</small>
+          {% endif %}
+        </div>
+      
+        <div class="card-custom">
+          <h6>Credit</h6>
+          <p>₹{{ total_income }}</p>
+          {% if previous_income %}
+            <small>{{ ((total_income - previous_income)/previous_income * 100)|round(1) }}% than last month</small>
+          {% else %}
+            <small>—</small>
+          {% endif %}
+        </div>
+      
+        <div class="card-custom">
+          <h6>Transactions</h6>
+          <p>{{ transactions|length }}</p>
+        </div>
+      
+        <div class="card-custom">
+          <h6>Current Balance</h6>
+          <p>₹{{ current_balance }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="row mt-3">
+      <div class="col-md-6">
+        <div class="card-custom">
+          <h5>Spending Categories</h5>
+          <div class="chart-container">
+            <canvas id="donutChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div class="card-custom">
+          <h5>Frequent Merchants & Rewards</h5>
+          <div class="chart-container">
+            <canvas id="barChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('active');
+      document.getElementById('mainContent').classList.toggle('shifted');
+    }
+
+    // Data from Flask
+    const transactions = {{ transactions|tojson }};
+    const categoryMap = {{ category_map|tojson }};
+    const merchantMap = {{ merchant_map|tojson }};
+
+    // Display current balance
+    const currentBalance = {{ current_balance|tojson }};
+    document.querySelector("#balanceValue").textContent = `₹${currentBalance.toLocaleString()}`;
+
+    // Prepare line chart - daily expenses
+    const lineLabels = [];
+    const lineData = [];
+
+    transactions.forEach(t => {
+        const date = t.date ? t.date.split(' ')[0] : 'Unknown';
+        if (!lineLabels.includes(date)) lineLabels.push(date);
+        const idx = lineLabels.indexOf(date);
+        lineData[idx] = (lineData[idx] || 0) + (t.amount || 0);
+    });
+
+    // Convert category & merchant maps to arrays
+    const donutLabels = Object.keys(categoryMap);
+    const donutData = Object.values(categoryMap);
+    const barLabels = Object.keys(merchantMap);
+    const barData = Object.values(merchantMap);
+
+    // Line chart
+    const lineCtx = document.getElementById('lineChart').getContext('2d');
+    const lineChart = new Chart(lineCtx, {
+        type: 'line',
+        data: {
+            labels: lineLabels,
+            datasets: [{
+                label: 'Expenses',
+                data: lineData,
+                borderColor: '#00ffff',
+                backgroundColor: 'rgba(0, 255, 255, 0.15)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: '#d1d1d1' } } },
+            scales: {
+                x: { ticks: { color: '#d1d1d1' }, grid: { color: '#00ffff20' } },
+                y: { ticks: { color: '#d1d1d1' }, grid: { color: '#00ffff20' } }
+            }
+        }
+    });
+
+    // Donut chart
+    const donutCtx = document.getElementById('donutChart').getContext('2d');
+    const donutChart = new Chart(donutCtx, {
+        type: 'doughnut',
+        data: {
+            labels: donutLabels,
+            datasets: [{
+                label: 'Spending',
+                data: donutData,
+                backgroundColor: ['#00ffff', '#007f7f', '#00b3b3']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: '#d1d1d1' } } }
+        }
+    });
+
+    // Bar chart
+    const barCtx = document.getElementById('barChart').getContext('2d');
+    const barChart = new Chart(barCtx, {
+        type: 'bar',
+        data: {
+            labels: barLabels,
+            datasets: [{
+                label: 'Rewards',
+                data: barData,
+                backgroundColor: ['#00ffff', '#007f7f']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: 'y',
+            plugins: { legend: { labels: { color: '#d1d1d1' } } },
+            scales: {
+                x: { ticks: { color: '#d1d1d1' }, grid: { color: '#00ffff20' } },
+                y: { ticks: { color: '#d1d1d1' }, grid: { color: '#00ffff20' } }
+            }
+        }
+    });
+  </script>
+</body>
+</html>

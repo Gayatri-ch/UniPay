@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Locked Out</title>
+  <style>
+    body {
+      background: #000;
+      color: #fff;
+      font-family: 'Poppins', sans-serif;
+      text-align: center;
+    }
+
+    .circle-timer {
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      margin: 50px auto;
+      position: relative;
+      background: conic-gradient(#00ffff 0deg, #00ffff 360deg, #222 0deg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .circle-timer span {
+      position: absolute;
+      font-size: 24px;
+    }
+
+    .logout-btn {
+      background-color: #00ffff;
+      color: #000;
+      border: none;
+      padding: 10px 25px;
+      border-radius: 25px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 20px;
+      transition: 0.3s ease;
+    }
+
+    .logout-btn:hover {
+      background-color: #00cccc;
+    }
+  </style>
+</head>
+<body>
+  <h1>Too many wrong attempts!</h1>
+  <p>Please try again after:</p>
+
+  <div class="circle-timer" id="circleTimer">
+    <span id="timer">{{ remaining }}</span>
+  </div>
+
+  <button class="logout-btn" onclick="logout()">Logout</button>
+
+  <script>
+    let timeLeft = {{ remaining }};
+    const totalTime = timeLeft;
+    const timerEl = document.getElementById('timer');
+    const circle = document.getElementById('circleTimer');
+
+    function formatTime(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+
+    function updateCircle() {
+      const progress = (timeLeft / totalTime) * 360;
+      circle.style.background = `conic-gradient(#00ffff ${progress}deg, #222 ${progress}deg)`;
+    }
+
+    timerEl.textContent = formatTime(timeLeft);
+    updateCircle();
+
+    const interval = setInterval(() => {
+      if (timeLeft <= 0) {
+        clearInterval(interval);
+        location.reload();
+      } else {
+        timeLeft--;
+        timerEl.textContent = formatTime(timeLeft);
+        updateCircle();
+      }
+    }, 1000);
+
+    function logout() {
+      window.location.href = "/logout"; // Replace with your actual logout route
+    }
+  </script>
+</body>
+</html>

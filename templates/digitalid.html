@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Digital ID - UniPay</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+<style>
+  body {
+    background-color: #0d0d0d; /* match UniPay dashboard bg */
+    color: #e0e0e0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+  }
+  .container {
+    padding: 2rem;
+  }
+  .card {
+    background-color: #1a1a1a; /* lighter black */
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    text-align: center;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+  }
+  #qrCode {
+    margin: 1rem auto;
+    width: 220px;
+    height: 220px;
+  }
+  .btn {
+    border-radius: 8px;
+    padding: 0.6rem 1.2rem;
+    font-weight: 500;
+  }
+  video {
+    border-radius: 12px;
+    margin-top: 1rem;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h2>Digital ID</h2>
+
+  <!-- QR Code Section -->
+  <div class="card">
+    <h5>Your QR Code</h5>
+    <canvas id="qrCode"></canvas>
+    <button class="btn btn-primary" onclick="generateQRCode()">Generate QR</button>
+  </div>
+
+  <!-- Face ID Section -->
+  <div class="card">
+    <h5>Face ID Setup</h5>
+    <video id="camera" width="250" height="250" autoplay muted></video>
+    <button class="btn btn-success" onclick="setupFaceID()">Set Face ID</button>
+    <p id="faceStatus"></p>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+<script>
+  function generateQRCode() {
+    const qr = new QRious({
+      element: document.getElementById('qrCode'),
+      value: "user_unique_id_123", // Replace dynamically
+      size: 220
+    });
+  }
+
+  const video = document.getElementById('camera');
+  async function setupFaceID() {
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      video.srcObject = stream;
+      document.getElementById('faceStatus').innerText = "Face capture ready. Capture and save face template in backend.";
+    }
+  }
+</script>
+</body>
+</html>

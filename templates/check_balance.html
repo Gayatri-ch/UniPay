@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UniPay - Check Balance</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: 'Poppins', sans-serif; background-color: #000; color: #fff; }
+
+.container { max-width: 500px; margin: 50px auto; padding: 20px; text-align:center; }
+
+.topbar {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  background-color:#008080;
+  padding:15px 40px; /* more left-right padding */
+  border-radius:12px;
+}
+
+.topbar h1 { font-size:24px; }
+
+.menu-icon { font-size:24px; cursor:pointer; color:#fff; }
+
+/* Sidebar */
+.sidebar {
+  position: fixed;
+  top:0;
+  left:-220px;
+  width:200px;
+  height:100%;
+  background:#111;
+  padding-top:70px;
+  transition: left 0.3s;
+  z-index:1000;
+}
+.sidebar.active { left:0; }
+.sidebar a {
+  display:block;
+  padding:12px 20px;
+  text-decoration:none;
+  color:#fff;
+  border-left:4px solid transparent;
+  margin-bottom:15px;
+  transition: all 0.3s;
+}
+.sidebar a:hover { border-left:4px solid #00ffff; background:#121212; }
+
+.pin-container { display:flex; justify-content:center; gap:10px; margin-top:30px; }
+.pin-container input {
+  width:50px; height:50px; font-size:24px; text-align:center;
+  border-radius:8px; border:2px solid #00ffff;
+  background:#1e1e1e; color:#fff;
+}
+
+.balance-section { margin-top:30px; font-size:20px; }
+.balance-section a { color:#00ffff; text-decoration:none; margin:0 10px; }
+
+.toast {
+  visibility:hidden;
+  min-width:200px;
+  background-color:#333;
+  color:#fff;
+  text-align:center;
+  border-radius:25px;
+  padding:12px 20px;
+  position:fixed;
+  top:20px;
+  right:20px;
+  font-size:14px;
+  z-index:9999;
+  opacity:0;
+  transition: opacity 0.5s, transform 0.5s;
+  transform:translateY(-20px);
+}
+.toast.show { visibility:visible; opacity:1; transform:translateY(0); }
+
+.overlay {
+  position: fixed;
+  display: none;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  background-color: rgba(0,0,0,0.5);
+  z-index: 500;
+}
+.overlay.active { display: block; }
+
+</style>
+</head>
+<body>
+
+<div class="sidebar" id="sidebar">
+  <div class="greeting" style="padding: 10px 20px; font-weight:600;">Hey, {{ user }}!</div>
+  <a href="{{ url_for('logout') }}">Logout</a>
+  <a href="{{ url_for('transaction_history') }}">Transaction History</a>
+  <a href="{{ url_for('transaction_history') }}">Spending Summary</a>
+  <a href="{{ url_for('rewards') }}">Rewards</a>
+</div>
+
+<div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+<div class="container">
+  <div class="topbar">
+    <h1>Check Balance</h1>
+    <i class="fas fa-bars menu-icon" onclick="toggleSidebar()"></i>
+  </div>
+
+  <form method="POST" id="pinForm">
+    <div class="pin-container">
+      <input type="password" name="pin1" maxlength="1" required autofocus>
+      <input type="password" name="pin2" maxlength="1" required>
+      <input type="password" name="pin3" maxlength="1" required>
+      <input type="password" name="pin4" maxlength="1" required>
+    </div>
+  </form>
+
+  {% if balance is not none %}
+  <div class="balance-section">
+    <p>Your Balance: ₹{{ balance }}</p>
+    <div style="margin-top:15px;">
+      <a href="{{ url_for('logout') }}">Logout</a> |
+      <a href="{{ url_for('transaction_history') }}">Transaction History</a> |
+      <a href="{{ url_for('rewards') }}">Rewards</a>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('active');
+  document.getElementById('overlay').classList.toggle('active');
+}
+
+// Auto-focus next PIN input
+const inputs = document.querySelectorAll('.pin-container input');
+inputs.forEach((input, i) => {
+  input.addEventListener('input', () => {
+    if (input.value.length === 1 && i < inputs.length - 1) {
+      inputs[i + 1].focus();
+    }
+    if (i === inputs.length - 1) {
+      document.getElementById('pinForm').submit();
+    }
+  });
+});
+
+// Flask flashed messages
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+  {% for category, message in messages %}
+    const toast = document.getElementById("toast");
+    toast.textContent = "{{ message }}";
+    toast.classList.add("show");
+    setTimeout(() => { toast.classList.remove("show"); }, 3000);
+  {% endfor %}
+{% endif %}
+{% endwith %}
+</script>
+
+</body>
+</html>

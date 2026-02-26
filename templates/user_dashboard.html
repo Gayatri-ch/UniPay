@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>UniPay - User Dashboard</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #000;
+      color: #fff;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: auto;
+      padding: 20px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #008080;
+      padding: 15px 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 255, 255, 0.15);
+    }
+
+    .topbar h1 {
+      color: #fff;
+      font-weight: bold;
+      font-size: 28px;
+    }
+
+    .menu-icon {
+      font-size: 24px;
+      cursor: pointer;
+      color: #fff;
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: -250px;
+      width: 240px;
+      height: 100%;
+      background-color: #111;
+      transition: left 0.3s ease;
+      padding-top: 70px;
+      z-index: 1000;
+      box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .sidebar.active {
+      left: 0;
+    }
+
+    .sidebar .greeting {
+      padding: 0 20px;
+      font-size: 18px;
+      color: #00ffff;
+      margin-bottom: 30px;
+    }
+
+    .sidebar a {
+      display: block;
+      color: #fff;
+      padding: 12px 20px;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      border-left: 4px solid transparent;
+      margin-bottom: 20px;
+    }
+
+    .sidebar a:hover {
+      border-left: 4px solid #00ffff;
+      background-color: #121212;
+      box-shadow: inset 4px 0 12px rgba(0, 255, 255, 0.1);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 24px;
+      margin-top: 40px;
+    }
+
+    .card {
+      background-color: #1e1e1e;
+      padding: 20px;
+      border-radius: 14px;
+      text-align: center;
+      transition: 0.3s ease;
+      box-shadow: 0 2px 8px rgba(0, 255, 255, 0.1);
+      border: 2px solid transparent;
+    }
+
+    .card:hover {
+      background-color: #101f1f;
+      transform: scale(1.03);
+      box-shadow: 0 4px 14px rgba(0, 255, 255, 0.3);
+      border: 2px solid #00ffff;
+    }
+
+    .card i {
+      font-size: 26px;
+      margin-bottom: 12px;
+      color: #00ffff;
+    }
+
+    .pay-again {
+      margin-top: 40px;
+    }
+
+    .pay-again h4 {
+      margin-bottom: 12px;
+    }
+
+    .avatars {
+      display: flex;
+      gap: 16px;
+      overflow-x: auto;
+    }
+
+    .avatar-wrapper {
+      text-align: center;
+      min-width: 60px;
+    }
+
+    .avatar-circle {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background-color: #008080;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 18px;
+      border: 2px solid #00ffff;
+      margin: auto;
+      margin-bottom: 5px;
+    }
+
+    .avatar-name {
+      font-size: 13px;
+      color: #ccc;
+    }
+
+    .bottom-section {
+      margin-top: 40px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 20px;
+    }
+
+    .action {
+      background-color: #1e1e1e;
+      padding: 16px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: 0.3s ease;
+      border: 2px solid transparent;
+    }
+
+    .action:hover {
+      background-color: #101f1f;
+      transform: scale(1.03);
+      box-shadow: 0 4px 14px rgba(0, 255, 255, 0.3);
+      border: 2px solid #00ffff;
+    }
+
+    .action i {
+      font-size: 20px;
+      color: #00ffff;
+    }
+
+    .action span {
+      font-size: 15px;
+    }
+
+    @media(max-width: 500px) {
+      .topbar h1 {
+        font-size: 22px;
+      }
+      .card i {
+        font-size: 22px;
+      }
+    }
+    /* Toast notification */
+    #toast {
+  visibility: hidden;
+  min-width: 200px;
+  max-width: 300px;
+  background-color: #333; /* Dark bubble */
+  color: #fff;
+  text-align: center;
+  border-radius: 25px;
+  padding: 12px 20px;
+  position: fixed;
+  top: 20px; /* floating from top */
+  right: 20px; /* floating from right */
+  font-size: 14px;
+  z-index: 9999;
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+#toast.show {
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0);
+}
+  </style>
+</head>
+<body>
+
+  <div class="sidebar" id="sidebar">
+    <div class="greeting">Hey, {{ user }}!</div>
+    <a href="#">Settings</a>
+    <a href="#">Edit Profile</a>
+    <a href="{{ url_for('transaction_history') }}">Spending Report</a>
+    <a href="{{ url_for('setup_face') }}">Set Face ID</a>
+    <a href="{{ url_for('logout') }}?logged_out=1">Logout</a>
+</div>
+
+<div class="container">
+    <div class="topbar">
+        <h1>UniPay</h1>
+        <i class="fas fa-bars menu-icon" onclick="toggleSidebar()"></i>
+    </div>
+
+    <div class="grid">
+        <div class="card" onclick="location.href='{{ url_for('pay_id') }}'" style="cursor: pointer;">
+            <i class="fas fa-money-bill-wave"></i>
+            <div>Send Money</div>
+        </div>
+        <div class="card" onclick="location.href='{{ url_for('scanpay') }}'">
+            <i class="fas fa-qrcode"></i>
+            <div>Scan & Pay</div>
+        </div>
+        <div class="card" onclick="location.href='{{ url_for('consent') }}'">
+            <i class="fas fa-university"></i>
+            <div>Link Bank Account</div>
+        </div>
+        <div class="card" onclick="location.href='{{ url_for('transaction_history') }}'" style="cursor: pointer;">
+            <i class="fas fa-receipt"></i>
+            <div>Transactions</div>
+        </div>
+        <div class="card" onclick="location.href='{{ url_for('check_balance') }}'">
+            <i class="fas fa-wallet"></i>
+            <div>Check Balance</div>
+        </div>
+        <div class="card" onclick="location.href='{{ url_for('rewards') }}'">
+            <i class="fas fa-gift"></i>
+            <div>Rewards</div>
+        </div>
+    </div>
+
+    <div class="pay-again">
+        <h4>Pay Again</h4>
+        <div class="avatars">
+            <div class="avatar-wrapper">
+                <div class="avatar-circle">Z</div>
+                <div class="avatar-name">ZuZu</div>
+            </div>
+            <div class="avatar-wrapper">
+                <div class="avatar-circle">S</div>
+                <div class="avatar-name">Swiggy</div>
+            </div>
+            <div class="avatar-wrapper">
+                <div class="avatar-circle">B</div>
+                <div class="avatar-name">BookMyShow</div>
+            </div>
+            <div class="avatar-wrapper">
+                <div class="avatar-circle">M</div>
+                <div class="avatar-name">Meesho</div>
+            </div>
+            <div class="avatar-wrapper">
+                <div class="avatar-circle">A</div>
+                <div class="avatar-name">Amazon</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-section">
+        <div class="action"><i class="fas fa-user-friends"></i><span>Refer & Earn</span></div>
+        <div class="action" onclick="location.href='{{ url_for('spendingsummary') }}'" style="cursor: pointer;">
+            <i class="fas fa-chart-pie"></i><span>Spending Summary</span>
+        </div>
+        <div class="action"><i class="fas fa-hand-holding-usd"></i><span>Split Bill</span></div>
+        <div class="action"><i class="fas fa-hand-holding-heart"></i><span>Request Money</span></div>
+    </div>
+</div>
+<div id="toast" class="toast">Successfully logged out</div>
+
+  <script>
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('active');
+    }
+  
+    // Show logout notification if URL has ?logged_out=1
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('logged_out') === '1') {
+      showToast("Successfully logged out");
+    }
+  function showToast(message) {
+  const toast = document.getElementById("toast");
+  toast.textContent = message;
+  toast.classList.add("show");
+  setTimeout(() => {
+    toast.classList.remove("show");
+  }, 3000); // visible for 3 seconds
+}
+
+// Flask flashed messages
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      showToast("{{ message }}");
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+  </script>
+
+</body>
+</html>

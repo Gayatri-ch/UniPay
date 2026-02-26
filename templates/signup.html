@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sign Up | UniPay</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+</head>
+<body>
+  <div class="auth-page">
+    <div class="left-panel">
+      <h1>Join <span>UniPay</span></h1>
+      <p>Secure payments. Smart wallet. Instant rewards.</p>
+    </div>
+
+    <div class="right-panel">
+      <div class="auth-box">
+        <h2>Create Account</h2>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% for category, message in messages %}
+            <div class="alert">{{ message }}</div>
+          {% endfor %}
+        {% endwith %}
+
+        <form method="POST">
+          <input type="text" name="name" placeholder="Full Name" required>
+          <input type="email" name="email" placeholder="Email" required>
+          <input type="text" name="phone" placeholder="Phone Number" required>
+          <input type="password" name="password" placeholder="Password" required>
+          <input type="password" name="confirm_password" placeholder="Confirm Password" required>
+
+          <!-- Dropdown for User Type -->
+          <select name="user_type" class="input-field" required>
+            <option value="" disabled selected>Select Account Type</option>
+            <option value="user">User</option>
+            <option value="merchant">Merchant</option>
+          </select>
+          {% if success %}
+           <div class="alert success">
+                Account created! Your Unique ID is: <strong>{{ uid }}</strong>
+            </div>
+          {% endif %}
+
+
+          <button type="submit" class="btn">Sign Up</button>
+        </form>
+
+        <p class="switch-link">
+          Already have an account? <a href="{{ url_for('login') }}">Login</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

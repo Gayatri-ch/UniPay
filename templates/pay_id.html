@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Send Money - UniPay</title>
+<style>
+body {margin:0;font-family:'Inter',sans-serif;background:linear-gradient(180deg,#071026,#071224);overflow-x:hidden;}
+header{position:relative;padding:15px 20px;display:flex;justify-content:space-between;align-items:center;}
+header h1{color:#06b6d4;font-size:24px;text-align:center;flex:1;}
+#menuBtn{width:40px;height:40px;border-radius:50%;border:none;background:#06b6d4;font-size:24px;color:#032027;cursor:pointer;display:flex;justify-content:center;align-items:center;transition:0.3s;position:relative;z-index:1100;}
+#menuBtn:hover{background:#0dd1ff;transform:scale(1.1);}
+#sideMenu{position:fixed;top:0;left:-250px;width:250px;height:100%;background:rgba(0,0,0,0.9);backdrop-filter:blur(10px);color:#fff;padding:40px 20px;box-shadow:4px 0 20px rgba(0,0,0,0.5);transition:left 0.4s ease;z-index:1000;}
+#sideMenu.show{left:0;}
+#sideMenu h2{margin-bottom:20px;color:#06b6d4;}
+#sideMenu button{display:block;margin:15px 0;padding:12px 20px;border:none;border-radius:15px;background:#06b6d4;color:#032027;cursor:pointer;font-weight:600;transition:0.3s;}
+#sideMenu button:hover{background:#0dd1ff;}
+#overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);display:none;z-index:900;}
+.app{width:100%;max-width:480px;margin:0 auto;padding:20px;}
+.card{background: rgba(255,255,255,0.05);backdrop-filter: blur(15px);border-radius:30px;padding:25px 20px;margin:25px 0;box-shadow: 0 8px 25px rgba(0,255,255,0.15);transition: transform 0.3s ease;}
+.card:hover{transform: translateY(-5px);}
+.input-field{width:100%;padding:14px 16px;border-radius:25px;border:none;background:rgba(255,255,255,0.1);color:#e6eef6;font-size:16px;margin-bottom:20px;outline:none;transition:0.3s;}
+.input-field:focus{background: rgba(0,255,255,0.1); box-shadow: 0 0 10px rgba(6,182,212,0.3);}
+#proceedBtn{width:70px;height:70px;border-radius:50%;background:#06b6d4;border:none;font-size:28px;color:#032027;cursor:pointer;margin:auto;display:block;transition:0.3s;}
+#proceedBtn:hover{background:#0dd1ff;transform: scale(1.1) rotate(10deg);}
+#resultPanel{position:fixed;bottom:-400px;left:0;width:100%;background:rgba(0,0,0,0.85);backdrop-filter:blur(20px);padding:25px 20px;border-top-left-radius:30px;border-top-right-radius:30px;color:#e6eef6;transition:bottom 0.5s ease;z-index:1000;}
+#resultPanel.show{bottom:0;}
+.result-item{margin-bottom:15px;font-size:18px;}
+.result-links{display:flex;justify-content:space-around;margin-top:20px;}
+.result-links a{padding:10px 20px;border-radius:25px;text-decoration:none;color:#032027;background:#06b6d4;font-weight:600;transition:0.3s;}
+.result-links a:hover{background:#0dd1ff;}
+
+/* PIN Modal */
+.modal-bg{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:none;align-items:center;justify-content:center;z-index:1001;}
+.modal{background:#111;padding:30px;border-radius:12px;text-align:center;max-width:320px;color:#fff;}
+.pin-container{display:flex;justify-content:center;gap:10px;margin:20px 0;}
+.pin-container input{width:50px;height:50px;font-size:24px;text-align:center;border-radius:8px;border:2px solid #06b6d4;background:#1e1e1e;color:#fff;}
+.btn.primary{background:#06b6d4;color:#032027;border:none;padding:10px 16px;font-weight:600;border-radius:8px;cursor:pointer;}
+.btn.primary:hover{background:#0dd1ff;}
+#discountInfo{margin-bottom:15px;font-size:16px;color:#00ffff;font-weight:600;}
+</style>
+</head>
+<body>
+
+<header>
+    <button id="menuBtn" onclick="toggleMenu()">☰</button>
+    <h1>Send Money</h1>
+</header>
+
+<div id="sideMenu">
+    <h2>Quick Actions</h2>
+    <button onclick="window.location.href='{{ url_for('transaction_history') }}'">Transaction History</button>
+    <button onclick="window.location.href='{{ url_for('check_balance') }}'">Check Balance</button>
+</div>
+
+<div id="overlay" onclick="closeMenu()"></div>
+
+<div class="app">
+    <div class="card">
+        <input type="text" id="receiverId" class="input-field" placeholder="Receiver ID">
+        <input type="text" id="amount" class="input-field" placeholder="Amount">
+        <div id="discountInfo">Discount Available: ₹0</div>
+        <button id="proceedBtn" onclick="showPinModal()">✔</button>
+    </div>
+</div>
+
+<div id="resultPanel">
+    <div class="result-item" id="currentBalance"></div>
+    <div class="result-item" id="amountDeduct"></div>
+    <div class="result-item" id="transactionStatus"></div>
+    <div class="result-item" id="rewardInfo"></div>
+</div>
+
+<!-- PIN Modal -->
+<div class="modal-bg" id="pinModal">
+  <div class="modal">
+    <h2>Enter Your 4-Digit PIN</h2>
+    <div class="pin-container">
+      <input type="password" id="pin1" maxlength="1" autofocus>
+      <input type="password" id="pin2" maxlength="1">
+      <input type="password" id="pin3" maxlength="1">
+      <input type="password" id="pin4" maxlength="1">
+    </div>
+    <button class="btn primary" onclick="submitPayment()">Submit</button>
+  </div>
+</div>
+
+<script>
+// Sidebar toggle
+function toggleMenu(){
+    const menu = document.getElementById('sideMenu');
+    const overlay = document.getElementById('overlay');
+    menu.classList.toggle('show');
+    overlay.style.display = menu.classList.contains('show') ? 'block' : 'none';
+}
+function closeMenu(){
+    document.getElementById('sideMenu').classList.remove('show');
+    document.getElementById('overlay').style.display='none';
+}
+
+// PIN modal auto-tab
+const pinInputs = document.querySelectorAll('.pin-container input');
+pinInputs.forEach((input, i)=>{
+    input.addEventListener('input', ()=>{
+        if(input.value.length===1 && i<pinInputs.length-1) pinInputs[i+1].focus();
+    });
+});
+
+// Variables
+let tempReceiver, tempAmount, tempPin;
+let discountAmount = 0;
+
+// Step 1: Show PIN modal
+function showPinModal(){
+    tempReceiver = document.getElementById('receiverId').value.trim();
+    tempAmount = parseFloat(document.getElementById('amount').value.trim());
+    if(!tempReceiver || !tempAmount){ alert("Enter receiver and amount!"); return; }
+
+    // Fetch discount for this merchant
+    fetch(`/get_discount?merchant=${encodeURIComponent(tempReceiver)}`)
+    .then(res=>res.json())
+    .then(data=>{
+        discountAmount = data.discount || 0;
+        document.getElementById('discountInfo').innerText = "Discount Available: ₹"+discountAmount;
+        document.getElementById('pinModal').style.display = 'flex';
+    })
+    .catch(err=>{
+        console.error("Discount fetch failed:", err);
+        document.getElementById('pinModal').style.display = 'flex';
+    });
+}
+
+// Step 2 & 3: Submit payment with PIN
+function submitPayment(){
+    tempPin = Array.from(pinInputs).map(i=>i.value).join('');
+    if(tempPin.length!==4){ alert("Enter 4-digit PIN"); return; }
+
+    const finalAmount = tempAmount - discountAmount;
+
+    fetch('/process_payment',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+            receiver: tempReceiver,
+            amount: finalAmount,
+            pin1: tempPin[0],
+            pin2: tempPin[1],
+            pin3: tempPin[2],
+            pin4: tempPin[3],
+            discount: discountAmount
+        })
+    })
+    .then(res=>res.json())
+    .then(data=>{
+        if(data.success){
+            document.getElementById('pinModal').style.display='none';
+            document.getElementById('currentBalance').innerText = "Current Balance: ₹"+data.balance.toFixed(2);
+            document.getElementById('amountDeduct').innerText = "Amount Deducted: ₹"+finalAmount.toFixed(2);
+            document.getElementById('transactionStatus').innerText = "Transaction ID: "+data.payment_id;
+            document.getElementById('rewardInfo').innerText = "Reward/Discount Applied: ₹"+discountAmount;
+            document.getElementById('resultPanel').classList.add('show');
+
+            // Reset
+            document.getElementById('receiverId').value='';
+            document.getElementById('amount').value='';
+            pinInputs.forEach(i=>i.value='');
+            document.getElementById('discountInfo').innerText = "Discount Available: ₹0";
+        } else {
+            alert(data.error || "Transaction failed");
+        }
+    })
+    .catch(err=>alert("Payment failed: "+err));
+}
+</script>
+</body>
+</html>

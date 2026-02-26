@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Scan & Pay - UniPay</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: 'Poppins', sans-serif; background-color: #000; color:#fff; }
+.container { max-width:1100px; margin:auto; padding:20px; }
+.topbar { display:flex; justify-content:space-between; align-items:center; background-color:#008080; padding:15px 25px; border-radius:12px; box-shadow:0 4px 12px rgba(0,255,255,0.15); }
+.topbar h1 { color:#fff; font-weight:bold; font-size:28px; }
+.menu-icon { font-size:24px; cursor:pointer; color:#fff; }
+
+.sidebar { position:fixed; top:0; left:-250px; width:240px; height:100%; background-color:#111; transition:left 0.3s ease; padding-top:70px; z-index:1000; box-shadow:2px 0 8px rgba(0,0,0,0.3); }
+.sidebar.active { left:0; }
+.sidebar .greeting { padding:0 20px; font-size:18px; color:#00ffff; margin-bottom:30px; }
+.sidebar a { display:block; color:#fff; padding:12px 20px; text-decoration:none; transition:all 0.3s ease; border-left:4px solid transparent; margin-bottom:20px; }
+.sidebar a:hover { border-left:4px solid #00ffff; background-color:#121212; box-shadow:inset 4px 0 12px rgba(0,255,255,0.1); }
+
+.grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:24px; margin-top:40px; }
+.card { background-color:#1e1e1e; padding:20px; border-radius:14px; text-align:center; transition:0.3s ease; box-shadow:0 2px 8px rgba(0,255,255,0.1); border:2px solid transparent; cursor:pointer; }
+.card:hover { background-color:#101f1f; transform:scale(1.03); box-shadow:0 4px 14px rgba(0,255,255,0.3); border:2px solid #00ffff; }
+.card i { font-size:26px; margin-bottom:12px; color:#00ffff; }
+
+button { border-radius:8px; padding:0.6rem 1.2rem; font-weight:500; border:none; cursor:pointer; background-color:#008080; color:#fff; transition:0.3s; }
+button:hover { opacity:0.85; }
+
+video { border-radius:14px; width:100%; max-width:300px; box-shadow:0 4px 12px rgba(0,255,255,0.3); margin-top:1rem; }
+
+#cameraContainer { margin-top:2rem; text-align:center; }
+#amountInput { margin-top:1rem; }
+#amountInput input { border-radius:6px; padding:0.6rem; width:120px; border:none; outline:none; margin-right:0.5rem; }
+#status { margin-top:1rem; font-weight:500; word-break:break-word; text-align:center; }
+#previewFace { margin-top:1rem; border-radius:12px; max-width:200px; display:none; }
+
+@media(max-width:500px){ .topbar h1{font-size:22px;} .card i{font-size:22px;} }
+</style>
+</head>
+<body>
+
+<div class="sidebar" id="sidebar">
+  <div class="greeting">Hey, {{ user }}!</div>
+  <a href="#">Settings</a>
+  <a href="#">Edit Profile</a>
+  <a href="{{ url_for('transaction_history') }}">Spending Report</a>
+  <a href="{{ url_for('logout') }}?logged_out=1">Logout</a>
+</div>
+
+<div class="container">
+  <div class="topbar">
+    <h1>UniPay</h1>
+    <i class="fas fa-bars menu-icon" onclick="toggleSidebar()"></i>
+  </div>
+
+  <div class="grid">
+    <div class="card" onclick="payViaQR()"><i class="fas fa-qrcode"></i><div>Pay via QR</div></div>
+    <div class="card" onclick="payViaFace()"><i class="fas fa-face-smile"></i><div>Pay via Face</div></div>
+  </div>
+
+  <div class="card" id="cameraContainer" style="display:none;">
+    <video id="camera" autoplay muted></video>
+    <canvas id="captureCanvas" style="display:none;"></canvas>
+    <img id="previewFace" />
+    <div id="amountInput" style="display:none;">
+      <p>Enter Amount:</p>
+      <input type="number" id="amount" min="1">
+      <button onclick="confirmPayment()">Confirm Payment</button>
+    </div>
+  </div>
+
+  <p id="status"></p>
+</div>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.9/minified/html5-qrcode.min.js"></script>
+<script>
+function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('active'); }
+
+let receiverID = null;
+let senderID = "{{ session['unique_id'] }}"; // dynamically set
+let faceStream = null;
+let faceVerifiedID = null;
+
+function payViaQR() {
+  document.getElementById('status').innerText = "Scanning QR Code...";
+  const container=document.getElementById('cameraContainer'); container.style.display='block';
+  const html5QrCode=new Html5Qrcode("camera");
+  html5QrCode.start({facingMode:"environment"}, {fps:10,qrbox:250},
+    (decodedText)=>{ html5QrCode.stop(); receiverID=decodedText; document.getElementById('status').innerText=`Receiver found: ${receiverID}`; document.getElementById('amountInput').style.display='block'; },
+    (err)=>{}
+  );
+}
+
+function payViaFace(){
+    document.getElementById('status').innerText="Scanning Face...";
+    const container=document.getElementById('cameraContainer'); container.style.display='block';
+    navigator.mediaDevices.getUserMedia({video:true}).then(stream=>{
+        faceStream=stream;
+        const video=document.getElementById('camera'); video.srcObject=stream;
+        document.getElementById('status').innerText+="\nFace scanning in progress...";
+        
+        // Capture frame after 3 seconds
+        setTimeout(()=>{
+            const canvas=document.createElement('canvas'); canvas.width=video.videoWidth; canvas.height=video.videoHeight;
+            canvas.getContext('2d').drawImage(video,0,0);
+            const face_image = canvas.toDataURL('image/jpeg');
+
+            fetch('/verify_face',{
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({face_image})
+            }).then(res=>res.json()).then(resp=>{
+                if(resp.success){
+                    receiverID = resp.receiver_id;
+                    document.getElementById('status').innerText = `Is this ${resp.receiver_name}? Enter amount and PIN to confirm.`;
+                    document.getElementById('amountInput').style.display='block';
+                    faceStream.getTracks().forEach(track=>track.stop());
+                } else {
+                    document.getElementById('status').innerText = resp.error;
+                    faceStream.getTracks().forEach(track=>track.stop());
+                }
+            }).catch(err=>{ document.getElementById('status').innerText="Error: "+err; });
+        },3000);
+    }).catch(err=>{ document.getElementById('status').innerText="Camera error: "+err; });
+}
+
+function confirmPayment(){
+  const amount=document.getElementById('amount').value;
+  if(!amount||amount<=0){alert("Enter valid amount"); return;}
+  let data={sender_id:senderID,amount:parseFloat(amount)};
+  if(receiverID){data['receiver_id']=receiverID;}
+  else if(faceVerifiedID){data['receiver_id']=faceVerifiedID;}
+  else{ alert("No recipient verified."); return; }
+
+  fetch('/process_payment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)})
+  .then(res=>res.json()).then(resp=>{
+    if(resp.success){
+      document.getElementById('status').innerText=`Payment Successful! Receiver: ${resp.receiver_name}`;
+      document.getElementById('amountInput').style.display='none';
+      if(faceStream) faceStream.getTracks().forEach(track=>track.stop());
+    }
+    else{ document.getElementById('status').innerText="Payment Failed: "+resp.message; }
+  }).catch(err=>{ document.getElementById('status').innerText="Error: "+err; });
+}
+</script>
+</body>
+</html>

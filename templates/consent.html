@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>UniPay — Consent</title>
+  <link rel="stylesheet" href="../static/css/linkbank.css">
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <h1 style="flex:1; text-align:center; margin:0;font-size: 30px;">Bank Linking Consent</h1>
+    </header>
+
+    <main class="content">
+      <section class="consent">
+        <label class="consent-row">
+          <input type="checkbox" id="consentCheckbox" />
+          <div>
+            <strong>Share bank details</strong>
+            <div class="muted">I agree to share my bank account information with UniPay for verification.</div>
+          </div>
+        </label>
+        <button class="btn primary" id="proceedBtn" style="margin-top:12px;">Proceed</button>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const consentBox = document.getElementById('consentCheckbox');
+    const proceedBtn = document.getElementById('proceedBtn');
+
+    proceedBtn.addEventListener('click', () => {
+      if (!consentBox.checked) {
+        alert('Please agree to share bank details first.');
+        return;
+      }
+      // store consent in localStorage
+      localStorage.setItem('bankConsent', 'true');
+      // navigate to bank selection page
+      window.location.href = 'selectbank';
+    });
+  </script>
+</body>
+</html>

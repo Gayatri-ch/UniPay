@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Login | UniPay</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+</head>
+<body>
+  <div class="auth-page">
+    <div class="left-panel">
+      <h1>Welcome <span>Back</span></h1>
+      <p>Login to access your UniPay account.</p>
+    </div>
+
+    <div class="right-panel">
+      <div class="auth-box">
+        <h2>Login</h2>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% for category, message in messages %}
+            <div class="alert">{{ message }}</div>
+          {% endfor %}
+        {% endwith %}
+
+        <form method="POST">
+          <input type="text" name="unique_id" placeholder="Unique ID" required>
+          <input type="password" name="password" placeholder="Password" required>
+          <button type="submit" class="btn">Login</button>
+        </form>
+
+        <p class="switch-link">
+          Don't have an account? <a href="{{ url_for('signup') }}">Sign Up</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

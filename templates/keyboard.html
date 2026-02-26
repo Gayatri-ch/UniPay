@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>On-Screen Keyboard</title>
+<style>
+body {
+    font-family: Inter, sans-serif;
+    background: #071026;
+    color: #e6eef6;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 12px;
+}
+
+.keyboard {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.keyboard-row {
+    display: grid;
+    gap: 6px;
+}
+
+.letters-row, .last-letters-row { grid-template-columns: repeat(7, 1fr); }
+.numbers-row, .last-numbers-row { grid-template-columns: repeat(6, 1fr); }
+.symbols-row, .last-symbols-row { grid-template-columns: repeat(5, 1fr); }
+
+.key {
+    padding: 12px;
+    border-radius: 6px;
+    background: #0b1220;
+    color: #e6eef6;
+    border: 1px solid rgba(255,255,255,0.04);
+    text-align: center;
+    cursor: pointer;
+    user-select: none;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.key:hover {
+    background: #06b6d4;
+    color: #032027;
+}
+
+.field-display {
+    margin-bottom: 12px;
+    font-size: 18px;
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 8px;
+    border-radius: 6px;
+    background: #061024;
+}
+</style>
+</head>
+<body>
+
+<div>
+    <div id="display" class="field-display"></div>
+    <div id="keyboard" class="keyboard"></div>
+    <button class="key" style="width:100%" onclick="submitInput()">Done</button>
+</div>
+
+<script>
+const display = document.getElementById('display');
+const keyboard = document.getElementById('keyboard');
+
+// Get field info from query params
+const params = new URLSearchParams(window.location.search);
+const fieldName = params.get('field') || 'input'; // field to return value
+
+// Keyboard modes
+const modes = {
+    letters: [
+        'Q','W','E','R','T','Y','U',
+        'I','O','P','A','S','D','F',
+        'G','H','J','K','L','Z','X',
+        'C','V','B','N','M'
+    ],
+    numbers: ['1','2','3','4','5','6','7','8','9','0'],
+    symbols: ['@','#','$','%','&','*','-','_']
+};
+
+let currentMode = 'letters';
+let value = '';
+
+function renderKeyboard() {
+    keyboard.innerHTML = '';
+    let keys = modes[currentMode];
+
+    if(currentMode==='letters'){
+        const rows = [keys.slice(0,7), keys.slice(7,14), keys.slice(14,21)];
+        const lastRowKeys = keys.slice(21);
+
+        rows.forEach(r=>{
+            const rowDiv = document.createElement('div');
+            rowDiv.className='keyboard-row letters-row';
+            r.forEach(k=>{
+                const btn=document.createElement('div');
+                btn.className='key';
+                btn.textContent=k;
+                btn.onclick=()=>{ value+=k; updateDisplay(); };
+                rowDiv.appendChild(btn);
+            });
+            keyboard.appendChild(rowDiv);
+        });
+
+        const lastRow=document.createElement('div');
+        lastRow.className='keyboard-row last-letters-row';
+
+        const upArrow=document.createElement('div');
+        upArrow.className='key';
+        upArrow.innerHTML='↑';
+        upArrow.onclick=toggleMode;
+        lastRow.appendChild(upArrow);
+
+        lastRowKeys.forEach(k=>{
+            const btn=document.createElement('div');
+            btn.className='key';
+            btn.textContent=k;
+            btn.onclick=()=>{ value+=k; updateDisplay(); };
+            lastRow.appendChild(btn);
+        });
+
+        const backBtn=document.createElement('div');
+        backBtn.className='key';
+        backBtn.innerHTML='⌫';
+        backBtn.onclick=()=>{ value=value.slice(0,-1); updateDisplay(); };
+        lastRow.appendChild(backBtn);
+
+        keyboard.appendChild(lastRow);
+
+    } else if(currentMode==='numbers'){
+        const firstRow=document.createElement('div');
+        firstRow.className='keyboard-row numbers-row';
+        keys.slice(0,6).forEach(k=>{
+            const btn=document.createElement('div');
+            btn.className='key';
+            btn.textContent=k;
+            btn.onclick=()=>{ value+=k; updateDisplay(); };
+            firstRow.appendChild(btn);
+        });
+        keyboard.appendChild(firstRow);
+
+        const lastRow=document.createElement('div');
+        lastRow.className='keyboard-row last-numbers-row';
+
+        const upArrow=document.createElement('div');
+        upArrow.className='key';
+        upArrow.innerHTML='↑';
+        upArrow.onclick=toggleMode;
+        lastRow.appendChild(upArrow);
+
+        keys.slice(6,10).forEach(k=>{
+            const btn=document.createElement('div');
+            btn.className='key';
+            btn.textContent=k;
+            btn.onclick=()=>{ value+=k; updateDisplay(); };
+            lastRow.appendChild(btn);
+        });
+
+        const backBtn=document.createElement('div');
+        backBtn.className='key';
+        backBtn.innerHTML='⌫';
+        backBtn.onclick=()=>{ value=value.slice(0,-1); updateDisplay(); };
+        lastRow.appendChild(backBtn);
+
+        keyboard.appendChild(lastRow);
+
+    } else {
+        const firstRow=document.createElement('div');
+        firstRow.className='keyboard-row symbols-row';
+        keys.slice(0,5).forEach(k=>{
+            const btn=document.createElement('div');
+            btn.className='key';
+            btn.textContent=k;
+            btn.onclick=()=>{ value+=k; updateDisplay(); };
+            firstRow.appendChild(btn);
+        });
+        keyboard.appendChild(firstRow);
+
+        const lastRow=document.createElement('div');
+        lastRow.className='keyboard-row last-symbols-row';
+
+        const upArrow=document.createElement('div');
+        upArrow.className='key';
+        upArrow.innerHTML='↑';
+        upArrow.onclick=toggleMode;
+        lastRow.appendChild(upArrow);
+
+        keys.slice(5,8).forEach(k=>{
+            const btn=document.createElement('div');
+            btn.className='key';
+            btn.textContent=k;
+            btn.onclick=()=>{ value+=k; updateDisplay(); };
+            lastRow.appendChild(btn);
+        });
+
+        const backBtn=document.createElement('div');
+        backBtn.className='key';
+        backBtn.innerHTML='⌫';
+        backBtn.onclick=()=>{ value=value.slice(0,-1); updateDisplay(); };
+        lastRow.appendChild(backBtn);
+
+        keyboard.appendChild(lastRow);
+    }
+}
+
+function toggleMode(){
+    if(currentMode==='letters') currentMode='numbers';
+    else if(currentMode==='numbers') currentMode='symbols';
+    else currentMode='letters';
+    renderKeyboard();
+}
+
+function updateDisplay(){
+    display.textContent=value;
+}
+
+// Send value back to opener
+function submitInput(){
+    if(window.opener){
+        window.opener.postMessage({field: fieldName, value: value}, "*");
+        window.close();
+    }
+}
+
+renderKeyboard();
+</script>
+</body>
+</html>

@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Send Money | UniPay</title>
+<style>
+body {
+    margin: 0;
+    font-family: Inter, sans-serif;
+    background: radial-gradient(circle at top, #0b0f19 0%, #05070d 100%);
+    color: #e6eef6;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+.app {
+    width: 90%;
+    max-width: 440px;
+}
+.main {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 18px;
+    padding: 25px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+    backdrop-filter: blur(20px);
+}
+h1 {
+    text-align: center;
+    color: #00e0ff;
+    margin-bottom: 20px;
+}
+.input-field {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: #0c1628;
+    color: #e6eef6;
+    font-size: 16px;
+    margin-bottom: 12px;
+}
+.btn {
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    background: linear-gradient(90deg, #00e0ff, #0072ff);
+    color: #fff;
+    cursor: pointer;
+    font-weight: 600;
+    width: 100%;
+    font-size: 16px;
+    transition: 0.2s;
+}
+.btn:hover {
+    transform: scale(1.03);
+    box-shadow: 0 0 12px #00e0ff;
+}
+.balance {
+    text-align: center;
+    color: #a0b0c0;
+    margin-top: 10px;
+}
+
+/* Floating Notification */
+.notif {
+    position: fixed;
+    top: 25px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 255, 170, 0.15);
+    color: #00ffaa;
+    border: 1px solid #00ffaa;
+    border-radius: 12px;
+    padding: 14px 25px;
+    font-size: 15px;
+    display: none;
+    z-index: 1000;
+    box-shadow: 0 0 15px rgba(0,255,170,0.4);
+}
+.notif.show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeDown 0.4s ease;
+}
+.notif .close-btn {
+    margin-left: 12px;
+    color: #fff;
+    cursor: pointer;
+    font-weight: bold;
+}
+@keyframes fadeDown {
+    from { opacity: 0; transform: translate(-50%, -15px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* Keyboard */
+.keyboard-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: #071026;
+    padding: 10px;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.5);
+    display: none;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 1000;
+}
+.keyboard-row {
+    display: grid;
+    gap: 6px;
+}
+.letters-row { grid-template-columns: repeat(7, 1fr); }
+.last-letters-row { grid-template-columns: repeat(7, 1fr); }
+.numbers-row { grid-template-columns: repeat(6, 1fr); }
+.last-numbers-row { grid-template-columns: repeat(6, 1fr); }
+.key {
+    padding: 12px;
+    border-radius: 6px;
+    background: #0b1220;
+    color: #e6eef6;
+    border: 1px solid rgba(255,255,255,0.04);
+    text-align: center;
+    cursor: pointer;
+    user-select: none;
+    font-weight: 600;
+    font-size: 16px;
+}
+.key:hover {
+    background: #06b6d4;
+    color: #032027;
+}
+</style>
+</head>
+<body>
+
+<div id="notif" class="notif">
+  <span id="notif-msg">Transaction Successful</span>
+  <span class="close-btn" onclick="closeNotif()">×</span>
+</div>
+
+<div class="app">
+  <div class="main">
+    <h1>Send Money 💸</h1>
+    <input type="text" id="receiverId" class="input-field" placeholder="Receiver ID" readonly>
+    <input type="text" id="amount" class="input-field" placeholder="Amount" readonly>
+    <button class="btn" onclick="requestPin()">Proceed</button>
+    <p class="balance">Wallet Balance: ₹<span id="walletBalance">1000</span></p>
+  </div>
+</div>
+
+<!-- Keyboard -->
+<div id="keyboardContainer" class="keyboard-container"></div>
+
+<!-- PIN Modal -->
+<div id="pinModal" style="position:fixed;top:0;left:0;right:0;bottom:0;display:none;justify-content:center;align-items:center;background:rgba(0,0,0,0.5);z-index:2000;">
+  <div style="background:#0b1220;padding:25px;border-radius:12px;text-align:center;color:#fff;">
+    <h3>Enter your 4-digit PIN</h3>
+    <div id="pinDisplay" style="font-size:26px;letter-spacing:8px;margin:12px 0;"></div>
+  </div>
+</div>
+
+<script>
+const receiverInput = document.getElementById('receiverId');
+const amountInput = document.getElementById('amount');
+const keyboardContainer = document.getElementById('keyboardContainer');
+const pinModal = document.getElementById('pinModal');
+const pinDisplay = document.getElementById('pinDisplay');
+let currentField = null;
+let value = '';
+let currentMode = 'letters';
+let pin = '';
+const userPin = '1234';
+let keyboardPurpose = 'input';
+
+const modes = {
+  letters: ['Q','W','E','R','T','Y','U','I','O','P','A','S','D','F','G','H','J','K','L','Z','X','C','V','B','N','M'],
+  numbers: ['1','2','3','4','5','6','7','8','9','0'],
+  symbols: ['@','#','$','%','&','*','-','_']
+};
+
+// Floating notification
+function showNotif(msg, type='success'){
+  const notif = document.getElementById('notif');
+  const text = document.getElementById('notif-msg');
+  text.textContent = msg;
+  notif.style.borderColor = type==='error'?'#ff5e5e':'#00ffaa';
+  notif.style.color = type==='error'?'#ff8080':'#00ffaa';
+  notif.classList.add('show');
+}
+function closeNotif(){
+  document.getElementById('notif').classList.remove('show');
+}
+
+// Keyboard open logic
+receiverInput.addEventListener('click', ()=>openKeyboard('receiver'));
+amountInput.addEventListener('click', ()=>openKeyboard('amount'));
+
+function openKeyboard(field){
+  if(field==='pin'){
+    keyboardPurpose='pin';
+    currentMode='numbers';
+    value='';
+    pin='';
+    pinDisplay.textContent='';
+  } else {
+    keyboardPurpose='input';
+    currentField = field==='receiver'? receiverInput : amountInput;
+    value = currentField.value || '';
+  }
+  renderKeyboard();
+  keyboardContainer.style.display='flex';
+}
+
+function handleKeyClick(k){
+  if(k==='⌫'){
+    if(keyboardPurpose==='pin'){
+      pin = pin.slice(0,-1);
+      pinDisplay.textContent = '●'.repeat(pin.length);
+    } else {
+      value = value.slice(0,-1);
+      currentField.value = value;
+    }
+  } else if(k==='↑'){
+    if(keyboardPurpose!=='pin') toggleMode();
+  } else {
+    if(keyboardPurpose==='pin'){
+      if(pin.length<4 && /[0-9]/.test(k)){
+        pin += k;
+        pinDisplay.textContent = '●'.repeat(pin.length);
+        if(pin.length===4) simulatePayment();
+      }
+    } else {
+      value += k;
+      currentField.value = value;
+    }
+  }
+}
+
+function toggleMode(){
+  if(currentMode==='letters') currentMode='numbers';
+  else if(currentMode==='numbers') currentMode='symbols';
+  else currentMode='letters';
+  renderKeyboard();
+}
+
+function renderKeyboard(){
+  keyboardContainer.innerHTML='';
+  let keys = modes[currentMode];
+  if(currentMode==='letters'){
+    const rows = [keys.slice(0,7), keys.slice(7,14), keys.slice(14,21)];
+    const lastRowKeys = keys.slice(21);
+    rows.forEach(r=>{
+      const rowDiv=document.createElement('div');
+      rowDiv.className='keyboard-row letters-row';
+      r.forEach(k=>{
+        const btn=document.createElement('div');
+        btn.className='key';
+        btn.textContent=k;
+        btn.onclick=()=>handleKeyClick(k);
+        rowDiv.appendChild(btn);
+      });
+      keyboardContainer.appendChild(rowDiv);
+    });
+    const lastRow=document.createElement('div');
+    lastRow.className='keyboard-row last-letters-row';
+    const upArrow=document.createElement('div'); upArrow.className='key'; upArrow.innerHTML='↑'; upArrow.onclick=()=>handleKeyClick('↑'); lastRow.appendChild(upArrow);
+    lastRowKeys.forEach(k=>{ const btn=document.createElement('div'); btn.className='key'; btn.textContent=k; btn.onclick=()=>handleKeyClick(k); lastRow.appendChild(btn); });
+    const backBtn=document.createElement('div'); backBtn.className='key'; backBtn.innerHTML='⌫'; backBtn.onclick=()=>handleKeyClick('⌫'); lastRow.appendChild(backBtn);
+    keyboardContainer.appendChild(lastRow);
+  } else if(currentMode==='numbers'){
+    const firstRow=document.createElement('div'); firstRow.className='keyboard-row numbers-row';
+    keys.slice(0,6).forEach(k=>{ const btn=document.createElement('div'); btn.className='key'; btn.textContent=k; btn.onclick=()=>handleKeyClick(k); firstRow.appendChild(btn); });
+    keyboardContainer.appendChild(firstRow);
+    const lastRow=document.createElement('div'); lastRow.className='keyboard-row last-numbers-row';
+    const upArrow=document.createElement('div'); upArrow.className='key'; upArrow.innerHTML='↑'; upArrow.onclick=()=>handleKeyClick('↑'); lastRow.appendChild(upArrow);
+    keys.slice(6,10).forEach(k=>{ const btn=document.createElement('div'); btn.className='key'; btn.textContent=k; btn.onclick=()=>handleKeyClick(k); lastRow.appendChild(btn); });
+    const backBtn=document.createElement('div'); backBtn.className='key'; backBtn.innerHTML='⌫'; backBtn.onclick=()=>handleKeyClick('⌫'); lastRow.appendChild(backBtn);
+    keyboardContainer.appendChild(lastRow);
+  }
+}
+
+function requestPin(){
+  if(!receiverInput.value || !amountInput.value){
+    showNotif("Enter both receiver ID and amount!", "error");
+    return;
+  }
+  pinModal.style.display='flex';
+  openKeyboard('pin');
+}
+
+function simulatePayment(){
+  if(keyboardPurpose==='pin'){
+    if(pin===userPin){
+      const receiver = receiverInput.value;
+      const amount = parseFloat(amountInput.value);
+      const walletEl = document.getElementById('walletBalance');
+      let balance = parseFloat(walletEl.textContent);
+      balance -= amount;
+      walletEl.textContent = balance.toFixed(2);
+      showNotif(`₹${amount} sent to ${receiver}`);
+      receiverInput.value='';
+      amountInput.value='';
+      pinModal.style.display='none';
+      keyboardContainer.style.display='none';
+    } else {
+      showNotif("Incorrect PIN!", "error");
+      pin='';
+      pinDisplay.textContent='';
+    }
+  }
+}
+</script>
+</body>
+</html>

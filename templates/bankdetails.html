@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>UniPay — Link Bank & Set PIN</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+body { font-family: "Poppins", sans-serif; background: #000; color: #fff; margin: 0; overflow-x: hidden; }
+.page { max-width: 650px; margin: 40px auto; background: #111; border-radius: 16px; padding: 20px 25px; position: relative; }
+.topbar { display: flex; justify-content: space-between; align-items: center; background: #008080; border-radius: 14px; padding: 14px 30px; margin: 0 -25px 25px; width: calc(100% + 50px); box-sizing: border-box; }
+.center-title { text-align: center; flex: 1; font-size: 20px; font-weight: 600; letter-spacing: 0.5px; }
+.back { background: none; border: none; color: #fff; font-size: 24px; cursor: pointer; }
+.menu-icon { font-size: 22px; cursor: pointer; color: #fff; }
+.sidebar { position: fixed; top: 0; left: -220px; width: 200px; height: 100%; background: #111; padding-top: 70px; transition: left 0.3s ease; z-index: 1000; }
+.sidebar.active { left: 0; }
+.sidebar a { display: block; padding: 12px 20px; text-decoration: none; color: #fff; border-left: 4px solid transparent; margin-bottom: 15px; transition: all 0.3s; }
+.sidebar a:hover { border-left: 4px solid #00ffff; background: #121212; }
+.content label { display: block; font-size: 15px; margin-bottom: 5px; }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+input { width: 100%; padding: 10px; border-radius: 8px; border: none; background: #1e1e1e; color: #fff; margin-bottom: 16px; font-size: 15px; box-sizing: border-box; }
+input[readonly] { background: #222; color: #aaa; }
+.btn.primary { background: #00ffff; color: #000; border: none; padding: 10px 16px; font-weight: 600; border-radius: 8px; cursor: pointer; margin-top: 10px; width: 100%; }
+.btn.primary:hover { background: #00cccc; }
+.modal-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 1000; }
+.modal { background: #111; padding: 30px; border-radius: 12px; text-align: center; max-width: 320px; }
+.modal h2 { margin-bottom: 20px; color: #00ffff; }
+.pin-container { display: flex; justify-content: center; gap: 10px; margin: 20px 0; }
+.pin-container input { width: 50px; height: 50px; font-size: 24px; text-align: center; border-radius: 8px; border: 2px solid #00ffff; background: #1e1e1e; color: #fff; }
+.toast { visibility: hidden; min-width: 200px; background-color: #333; color: #fff; text-align: center; border-radius: 25px; padding: 12px 20px; position: fixed; top: 20px; right: 20px; font-size: 14px; z-index: 9999; opacity: 0; transition: opacity 0.5s, transform 0.5s; transform: translateY(-20px); }
+.toast.show { visibility: visible; opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+  <a href="{{ url_for('user_dashboard') }}"><i class="fas fa-home"></i> Home</a>
+  <a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a>
+</div>
+
+<div class="page">
+  <header class="topbar">
+    <button class="back" onclick="goBack()">&larr;</button>
+    <h1 class="center-title">Link Bank</h1>
+    <i class="fas fa-bars menu-icon" onclick="toggleSidebar()"></i>
+  </header>
+
+  <main class="content">
+    <section id="bankDetailsSection">
+      <h2 style="color:#00ffff; text-align:center;">Bank Details</h2>
+      <form id="bankForm">
+        <div class="form-grid">
+          <div>
+            <label>Bank Name</label>
+            <input type="text" value="{{ bank_name }}" readonly />
+          </div>
+          <div>
+            <label>Account Holder Name</label>
+            <input id="accHolderName" name="accHolderName" placeholder="Enter your name" required />
+          </div>
+          <div>
+            <label>Phone Number</label>
+            <input id="phoneNumber" name="phoneNumber" type="tel" inputmode="numeric" maxlength="10" placeholder="Enter phone number" required />
+          </div>
+          <div>
+            <label>Email ID</label>
+            <input id="emailId" name="emailId" type="email" placeholder="Enter email address" required />
+          </div>
+          <div>
+            <label>Account Number</label>
+            <input id="accNumber" name="accNumber" inputmode="numeric" maxlength="12" placeholder="Enter account number" required />
+          </div>
+          <div>
+            <label>IFSC Code</label>
+            <div style="display:flex; gap:5px; align-items:center;">
+              <input type="text" id="ifscPrefix" name="ifscPrefix" value="{{ ifsc_prefix }}" readonly style="width:80px; text-align:center;">
+              <input type="text" id="ifscSuffix" name="ifscSuffix" maxlength="6" placeholder="XXXXXX" required style="width:100px; text-align:center;">
+
+            </div>
+          </div>
+          <div>
+            <label>Branch</label>
+            <input id="branchName" name="branchName" placeholder="Enter branch name" required />
+          </div>
+        </div>
+        <button type="submit" class="btn primary">Link Bank</button>
+      </form>
+    </section>
+  </main>
+</div>
+
+<!-- PIN setup modal -->
+<div class="modal-bg" id="pinModal">
+  <div class="modal">
+    <h2>Set Your 4-Digit PIN</h2>
+    <form id="pinForm" method="POST" action="/set_pin">
+      <div class="pin-container">
+        <input type="password" name="pin1" maxlength="1" required autofocus>
+        <input type="password" name="pin2" maxlength="1" required>
+        <input type="password" name="pin3" maxlength="1" required>
+        <input type="password" name="pin4" maxlength="1" required>
+      </div>
+      <button type="submit" class="btn primary">Save PIN</button>
+    </form>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+function goBack() { window.history.back(); }
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
+
+document.getElementById('bankForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const accNum = document.getElementById('accNumber').value;
+  const phone = document.getElementById('phoneNumber').value;
+  const ifscSuffix = document.getElementById('ifscSuffix').value;
+
+  if (accNum.length < 9 || accNum.length > 12) { showToast('Account number must be 9-12 digits'); return; }
+  if (phone.length !== 10) { showToast('Phone number must be 10 digits'); return; }
+  if (ifscSuffix.length !== 6 || isNaN(ifscSuffix)) { showToast('IFSC suffix must be 6 digits'); return; }
+
+  // Combine prefix + suffix
+  const ifscFull = document.getElementById('ifscPrefix').value + ifscSuffix;
+  const formData = new FormData(e.target);
+  formData.set('ifscCode', ifscFull); // overwrite full IFSC for backend
+
+  fetch('/bankdetails', { method: 'POST', body: formData })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        showToast('Bank linked successfully! Set your PIN now.');
+        document.getElementById('pinModal').style.display = 'flex';
+      } else {
+        showToast(data.error || 'Error linking bank.');
+      }
+    })
+    .catch(err => showToast('Error linking bank.'));
+});
+
+// PIN auto-tab
+const pinInputs = document.querySelectorAll('.pin-container input');
+pinInputs.forEach((input, i) => {
+  input.addEventListener('input', () => { if (input.value.length === 1 && i < pinInputs.length-1) pinInputs[i+1].focus(); });
+});
+
+// Toast
+function showToast(msg) {
+  const toast = document.getElementById("toast");
+  toast.textContent = msg;
+  toast.classList.add("show");
+  setTimeout(() => { toast.classList.remove("show"); }, 3000);
+}
+</script>
+</body>
+</html>

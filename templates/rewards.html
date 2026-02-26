@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rewards - UniPay</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+body {margin:0;font-family:'Inter',sans-serif;background:linear-gradient(180deg,#071026,#071224);color:#e6eef6;}
+header{padding:15px 20px;display:flex;justify-content:space-between;align-items:center;}
+header h1{color:#06b6d4;font-size:24px;text-align:center;flex:1;}
+.app{width:100%;max-width:960px;margin:0 auto;padding:20px;}
+.card{background: rgba(255,255,255,0.05);backdrop-filter: blur(15px);border-radius:30px;padding:25px 20px;margin:25px 0;box-shadow: 0 8px 25px rgba(0,255,255,0.15);}
+.card:hover{transform: translateY(-5px);transition:0.3s;}
+table{width:100%;border-collapse:collapse;margin-top:15px;}
+th,td{padding:12px 15px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.2);}
+th{color:#00ffff;}
+td{color:#e6eef6;}
+#rewardsChart{height:300px;margin-top:20px;}
+</style>
+</head>
+<body>
+
+<header>
+    <h1>Rewards & Discounts</h1>
+</header>
+
+<div class="app">
+
+    <div class="card">
+        <h2>Reward Points by Merchant</h2>
+        <canvas id="rewardsChart"></canvas>
+    </div>
+
+    <div class="card">
+        <h2>Merchant Rewards Details</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Merchant</th>
+                    <th>Transactions</th>
+                    <th>Total Spent (₹)</th>
+                    <th>Reward Points</th>
+                    <th>Discount Eligible (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for merchant, stats in merchants %}
+                <tr>
+                    <td>{{ merchant }}</td>
+                    <td>{{ stats.count }}</td>
+                    <td>{{ stats.total }}</td>
+                    <td>{{ stats.points }}</td>
+                    <td>{{ stats.discount }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<script>
+// Prepare chart data from Flask
+const merchantLabels = {{ merchants|map(attribute=0)|list|tojson }};
+const rewardData = {{ merchants|map(attribute=1)|map(attribute='points')|list|tojson }};
+const discountData = {{ merchants|map(attribute=1)|map(attribute='discount')|list|tojson }};
+
+const ctx = document.getElementById('rewardsChart').getContext('2d');
+const rewardsChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: merchantLabels,
+        datasets: [
+            {
+                label: 'Reward Points',
+                data: rewardData,
+                backgroundColor: '#00ffff'
+            },
+            {
+                label: 'Discount Eligible (₹)',
+                data: discountData,
+                backgroundColor: '#007f7f'
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            x: { ticks: { color: '#e6eef6' } },
+            y: { ticks: { color: '#e6eef6' } }
+        },
+        plugins: {
+            legend: { labels: { color: '#e6eef6' } }
+        }
+    }
+});
+</script>
+
+</body>
+</html>
